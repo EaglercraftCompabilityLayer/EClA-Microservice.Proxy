@@ -1,22 +1,19 @@
 export default async function handler(req, res) {
-  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Extract path array from Vercel dynamic routing
+  const pathSegments = req.query.path;
+  const endpoint = Array.isArray(pathSegments) ? pathSegments.join('/') : (pathSegments || '');
+
+  // Health check response
+  if (req.method === 'GET' && !endpoint) {
+    return res.status(200).json({ status: 'Proxy is online' });
   }
 
-  // Health check response for direct browser visits
-  if (req.method === 'GET' && !req.query.path) {
-    return res.status(200).json({ 
-      status: 'Proxy is online', 
-      message: 'Send POST requests through poll.js' 
-    });
-  }
-
-  const endpoint = req.query.path || 'authentication/login_with_xbox';
   const targetUrl = `https://api.minecraftservices.com/${endpoint}`;
 
   try {
@@ -34,13 +31,6 @@ export default async function handler(req, res) {
     });
 
     const data = await response.text();
-
-    if (data.includes('The request is blocked') || data.includes('<!DOCTYPE html')) {
-      return res.status(502).json({
-        error: 'Azure WAF blocked the request. Ensure you are sending a valid POST payload.'
-      });
-    }
-
     res.status(response.status).setHeader('Content-Type', 'application/json').send(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
