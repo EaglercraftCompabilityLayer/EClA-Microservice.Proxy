@@ -1,13 +1,21 @@
 export default async function handler(req, res) {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Extract path array from Vercel dynamic routing
-  const pathSegments = req.query.path;
-  const endpoint = Array.isArray(pathSegments) ? pathSegments.join('/') : (pathSegments || '');
+  // Parse path segments from Vercel dynamic route
+  let pathSegments = req.query.path || [];
+  if (typeof pathSegments === 'string') pathSegments = [pathSegments];
+
+  // Strip 'mc-proxy' if included in path
+  if (pathSegments[0] === 'mc-proxy') {
+    pathSegments = pathSegments.slice(1);
+  }
+
+  const endpoint = pathSegments.join('/');
 
   // Health check response
   if (req.method === 'GET' && !endpoint) {
