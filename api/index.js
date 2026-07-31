@@ -1,24 +1,20 @@
 export default async function handler(req, res) {
-  // CORS Headers
+  // ── Enable CORS ─────────────────────────────────────────────────────────────
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Parse path segments from Vercel dynamic route
-  let pathSegments = req.query.path || [];
-  if (typeof pathSegments === 'string') pathSegments = [pathSegments];
+  // ── Extract requested path directly from URL ───────────────────────────────
+  // Handles incoming URLs like "/api/mc-proxy/authentication/login_with_xbox"
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  let endpoint = url.pathname
+    .replace(/^\/api\/mc-proxy\/?/, '')
+    .replace(/^\/api\/?/, '');
 
-  // Strip 'mc-proxy' if included in path
-  if (pathSegments[0] === 'mc-proxy') {
-    pathSegments = pathSegments.slice(1);
-  }
-
-  const endpoint = pathSegments.join('/');
-
-  // Health check response
-  if (req.method === 'GET' && !endpoint) {
+  // ── Health Check for browser test ──────────────────────────────────────────
+  if (req.method === 'GET' && (!endpoint || endpoint === 'index')) {
     return res.status(200).json({ status: 'Proxy is online' });
   }
 
